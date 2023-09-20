@@ -39,6 +39,8 @@ fn sendTelegramMessage(allocator: std.mem.Allocator, text: []const u8) !void {
 
     defer client.deinit();
     defer request.deinit();
+
+    allocator.free(uri.query.?);
 }
 
 pub fn main() !void {
