@@ -26,10 +26,15 @@ pub fn sendMessage(self: *Bot, text: []const u8) !void {
     uri.query = try std.fmt.allocPrint(self.allocator, "chat_id={s}&text={s}", .{ consts.TELEGRAM_CHAT_ID, text });
     defer self.allocator.free(uri.query.?);
 
-    var request = try client.request(.POST, uri, .{ .allocator = self.allocator }, .{});
+    var buffer: [8096]u8 = undefined;
+    var request = try client.open(
+        .POST,
+        uri,
+        .{ .server_header_buffer = &buffer },
+    );
     defer request.deinit();
 
-    try request.start();
+    try request.send(.{});
     try request.wait();
 }
 

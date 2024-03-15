@@ -8,10 +8,11 @@ pub fn fetchToncoinPrice(allocator: std.mem.Allocator) !f64 {
     var client = http.Client{ .allocator = allocator };
     defer client.deinit();
 
-    var request = try client.request(.GET, consts.COINGECKO_API, .{ .allocator = allocator }, .{});
+    var buffer: [8096]u8 = undefined;
+    var request = try client.open(.GET, consts.COINGECKO_API, .{ .server_header_buffer = &buffer });
     defer request.deinit();
 
-    try request.start();
+    try request.send(.{});
     try request.wait();
 
     const body = request.reader().readAllAlloc(allocator, 8192) catch unreachable;
