@@ -11,7 +11,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     defer {
-        var deinit_status = gpa.deinit();
+        const deinit_status = gpa.deinit();
         if (deinit_status == .leak) unreachable else {}
     }
 
