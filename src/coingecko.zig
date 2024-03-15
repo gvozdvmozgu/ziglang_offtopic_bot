@@ -4,6 +4,14 @@ const consts = @import("consts.zig");
 const http = std.http;
 const json = std.json;
 
+const CurrencyInfo = struct {
+    usd: f64,
+};
+
+const CryptoData = struct {
+    @"the-open-network": CurrencyInfo,
+};
+
 pub fn fetchToncoinPrice(allocator: std.mem.Allocator) !f64 {
     var client = http.Client{ .allocator = allocator };
     defer client.deinit();
@@ -15,11 +23,11 @@ pub fn fetchToncoinPrice(allocator: std.mem.Allocator) !f64 {
     try request.send(.{});
     try request.wait();
 
-    const body = request.reader().readAllAlloc(allocator, 8192) catch unreachable;
+    const body = request.reader().readAllAlloc(allocator, 8192) catch return 0;
     defer allocator.free(body);
 
-    const parsed_json = try json.parseFromSlice(json.Value, allocator, body, .{});
+    const parsed_json = try json.parseFromSlice(CryptoData, allocator, body, .{});
     defer parsed_json.deinit();
 
-    return parsed_json.value.object.get("the-open-network").?.object.get("usd").?.float;
+    return parsed_json.value.@"the-open-network".usd;
 }
