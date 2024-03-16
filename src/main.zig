@@ -33,8 +33,8 @@ fn process(bot: *Bot, command: Command, message: Bot.Message) void {
         .@"/start" => {
             bot.sendMessage(message.chat.id, "Hello :3") catch return;
         },
-        .@"/price" => {
-            if (std.mem.eql(u8, command.@"/price".name, "toncoin")) {
+        .@"/price" => |options| {
+            if (std.mem.eql(u8, options.name, "toncoin")) {
                 const toncoin_price = coingecko.fetchToncoinPrice(bot.allocator) catch {
                     const text = std.fmt.allocPrint(bot.allocator, "Failed to execute the request to retrieve the cost of Toncoin", .{}) catch return;
                     defer bot.allocator.free(text);
