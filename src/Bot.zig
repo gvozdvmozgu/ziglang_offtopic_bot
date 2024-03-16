@@ -177,3 +177,24 @@ pub const Response = struct {
     ok: bool,
     result: []const Update,
 };
+
+test "parse" {
+    const Command = union(enum) {
+        const Command = @This();
+
+        start,
+        move: struct { x: usize, y: usize },
+        unknown,
+
+        fn assert(self: Command, input: []const u8) !void {
+            var args = std.mem.split(u8, input, " ");
+            const actual = parseCommand(Command, &args) catch unreachable;
+
+            try std.testing.expectEqualDeep(self, actual);
+        }
+    };
+
+    try (Command{ .start = {} }).assert("start");
+    try (Command{ .move = .{ .x = 40, .y = 42 } }).assert("move 40 42");
+    try (Command{ .unknown = {} }).assert("2B");
+}

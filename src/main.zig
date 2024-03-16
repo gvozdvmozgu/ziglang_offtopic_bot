@@ -50,3 +50,7 @@ fn process(bot: *Bot, command: Command, message: Bot.Message) void {
         .unknown => {},
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}
