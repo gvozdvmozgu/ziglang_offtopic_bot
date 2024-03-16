@@ -94,17 +94,17 @@ const ArgIterator = *std.mem.SplitIterator(u8, std.mem.DelimiterType.sequence);
 
 fn parse(comptime Command: type, args: ArgIterator) !Command {
     return switch (@typeInfo(Command)) {
-        .Union => try parse_commands(Command, args),
+        .Union => try parseCommand(Command, args),
         else => unreachable,
     };
 }
 
-fn parse_commands(comptime Command: type, args: ArgIterator) !Command {
+fn parseCommand(comptime Command: type, args: ArgIterator) !Command {
     const first_arg = args.next() orelse "";
 
     inline for (comptime std.meta.fields(Command)) |field| {
         if (std.mem.eql(u8, first_arg, field.name)) {
-            return @unionInit(Command, field.name, try parse_args(
+            return @unionInit(Command, field.name, try parseArgs(
                 field.type,
                 args,
             ));
@@ -114,7 +114,7 @@ fn parse_commands(comptime Command: type, args: ArgIterator) !Command {
     return @unionInit(Command, "unknown", {});
 }
 
-fn parse_args(
+fn parseArgs(
     comptime Args: type,
     args: ArgIterator,
 ) !Args {
@@ -125,13 +125,13 @@ fn parse_args(
 
     inline for (std.meta.fields(Args)) |field| {
         const arg = args.next() orelse "";
-        @field(result, field.name) = try parse_arg(field.type, arg);
+        @field(result, field.name) = try parseArg(field.type, arg);
     }
 
     return result;
 }
 
-fn parse_arg(comptime T: type, arg: []const u8) !T {
+fn parseArg(comptime T: type, arg: []const u8) !T {
     if (T == []const u8) {
         return arg;
     }
