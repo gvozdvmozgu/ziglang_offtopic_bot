@@ -1,6 +1,5 @@
 const Bot = @This();
 
-const coingecko = @import("coingecko.zig");
 const consts = @import("consts.zig");
 const std = @import("std");
 
@@ -15,7 +14,7 @@ pub fn init(allocator: std.mem.Allocator, token: []const u8) !Bot {
     return Bot{ .allocator = allocator, .base = base };
 }
 
-pub fn run(self: *Bot) !void {
+pub fn run(self: *Bot, comptime Command: type, comptime process: fn (*Bot, Command, Message) void) !void {
     var offset: i64 = 0;
 
     var client = http.Client{ .allocator = self.allocator };
@@ -44,20 +43,19 @@ pub fn run(self: *Bot) !void {
         const body = request.reader().readAllAlloc(self.allocator, std.math.maxInt(usize)) catch unreachable;
         defer self.allocator.free(body);
 
-        const parsed = json.parseFromSlice(Response, self.allocator, body, .{ .ignore_unknown_fields = true }) catch unreachable;
+        const parsed = json.parseFromSlice(Response, self.allocator, body, .{ .ignore_unknown_fields = true }) catch {
+            unreachable;
+        };
         defer parsed.deinit();
 
         for (parsed.value.result) |update| {
             offset = update.update_id + 1;
 
-            const message = update.message;
-            if (std.mem.eql(u8, message.text, "/toncoin")) {
-                const toncoin_price = coingecko.fetchToncoinPrice(self.allocator) catch {
-                    try self.sendMessage(message.chat.id, try std.fmt.allocPrint(self.allocator, "Failed to execute the request to retrieve the cost of Toncoin", .{}));
-                    continue;
-                };
+            if (update.message) |message| {
+                var args = std.mem.splitSequence(u8, message.text orelse "", " ");
 
-                try self.sendMessage(message.chat.id, try std.fmt.allocPrint(self.allocator, "The current price of Toncoin (The Open Network) is: ${d}", .{toncoin_price}));
+                const command = parse(Command, &args) catch continue;
+                process(self, command, message);
             }
         }
     }
@@ -92,11 +90,67 @@ pub fn deinit(self: *Bot) void {
     self.allocator.free(self.base);
 }
 
+const ArgIterator = *std.mem.SplitIterator(u8, std.mem.DelimiterType.sequence);
+
+fn parse(comptime Command: type, args: ArgIterator) !Command {
+    return switch (@typeInfo(Command)) {
+        .Union => try parse_commands(Command, args),
+        else => unreachable,
+    };
+}
+
+fn parse_commands(comptime Command: type, args: ArgIterator) !Command {
+    const first_arg = args.next() orelse "";
+
+    inline for (comptime std.meta.fields(Command)) |field| {
+        if (std.mem.eql(u8, first_arg, field.name)) {
+            return @unionInit(Command, field.name, try parse_args(
+                field.type,
+                args,
+            ));
+        }
+    }
+
+    return @unionInit(Command, "unknown", {});
+}
+
+fn parse_args(
+    comptime Args: type,
+    args: ArgIterator,
+) !Args {
+    var result: Args = undefined;
+    if (Args == void) {
+        return {};
+    }
+
+    inline for (std.meta.fields(Args)) |field| {
+        const arg = args.next() orelse "";
+        @field(result, field.name) = try parse_arg(field.type, arg);
+    }
+
+    return result;
+}
+
+fn parse_arg(comptime T: type, arg: []const u8) !T {
+    if (T == []const u8) {
+        return arg;
+    }
+
+    switch (@typeInfo(T)) {
+        .Int => {
+            return std.fmt.parseInt(T, arg, 10);
+        },
+        else => {
+            comptime unreachable;
+        },
+    }
+}
+
 pub const User = struct {
     id: i64,
     is_bot: bool,
-    first_name: []const u8,
-    language_code: []const u8,
+    first_name: ?[]const u8 = null,
+    language_code: ?[]const u8 = null,
 };
 
 pub const Chat = struct {
@@ -108,15 +162,15 @@ pub const Chat = struct {
 
 pub const Message = struct {
     message_id: i64,
-    from: User,
+    from: ?User = null,
     chat: Chat,
     date: i64,
-    text: []const u8,
+    text: ?[]const u8 = null,
 };
 
 pub const Update = struct {
     update_id: i64,
-    message: Message,
+    message: ?Message = null,
 };
 
 pub const Response = struct {

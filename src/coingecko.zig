@@ -23,7 +23,7 @@ pub fn fetchToncoinPrice(allocator: std.mem.Allocator) !f64 {
     try request.send(.{});
     try request.wait();
 
-    const body = request.reader().readAllAlloc(allocator, 8192) catch return 0;
+    const body = try request.reader().readAllAlloc(allocator, 8192);
     defer allocator.free(body);
 
     const parsed_json = try json.parseFromSlice(CryptoData, allocator, body, .{});
