@@ -3,18 +3,21 @@ const coingecko = @import("coingecko.zig");
 const std = @import("std");
 
 pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+    _ = try stdout.write("Launched :3\n");
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    defer std.debug.assert(gpa.deinit() == .ok);
-
     const token = std.process.getEnvVarOwned(allocator, "TELEGRAM_TOKEN") catch unreachable;
-    defer allocator.free(token);
+    const bot = try Bot.init(allocator, token);
 
-    var bot = try Bot.init(allocator, token);
-    defer bot.deinit();
+    allocator.free(token);
 
     bot.run(Command, process) catch unreachable;
+    bot.deinit();
+
+    std.debug.assert(gpa.deinit() == .ok);
 }
 
 const Command = union(enum) {
@@ -25,7 +28,7 @@ const Command = union(enum) {
     unknown,
 };
 
-fn process(bot: *Bot, command: Command, message: Bot.Message) void {
+fn process(bot: Bot, command: Command, message: Bot.Message) void {
     switch (command) {
         .@"/start" => {
             bot.sendMessage(message.chat.id, "Hello :3") catch return;

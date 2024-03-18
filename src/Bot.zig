@@ -14,7 +14,7 @@ pub fn init(allocator: std.mem.Allocator, token: []const u8) !Bot {
     return Bot{ .allocator = allocator, .base = base };
 }
 
-pub fn run(self: *Bot, comptime Command: type, comptime process: fn (*Bot, Command, Message) void) !void {
+pub fn run(self: Bot, comptime Command: type, comptime process: fn (Bot, Command, Message) void) !void {
     var offset: i64 = 0;
 
     var client = http.Client{ .allocator = self.allocator };
@@ -61,7 +61,7 @@ pub fn run(self: *Bot, comptime Command: type, comptime process: fn (*Bot, Comma
     }
 }
 
-pub fn sendMessage(self: *Bot, chat_id: i64, text: []const u8) !void {
+pub fn sendMessage(self: Bot, chat_id: i64, text: []const u8) !void {
     var client = http.Client{ .allocator = self.allocator };
     defer client.deinit();
 
@@ -86,7 +86,7 @@ pub fn sendMessage(self: *Bot, chat_id: i64, text: []const u8) !void {
     try request.wait();
 }
 
-pub fn deinit(self: *Bot) void {
+pub fn deinit(self: Bot) void {
     self.allocator.free(self.base);
 }
 
@@ -95,7 +95,7 @@ const ArgIterator = *std.mem.SplitIterator(u8, std.mem.DelimiterType.sequence);
 fn parse(comptime Command: type, args: ArgIterator) !Command {
     return switch (@typeInfo(Command)) {
         .Union => try parseCommand(Command, args),
-        else => unreachable,
+        else => comptime unreachable,
     };
 }
 
