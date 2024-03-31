@@ -21,20 +21,13 @@ pub fn run(self: Bot, comptime Command: type, comptime process: fn (Bot, Command
     defer client.deinit();
 
     while (true) {
-        const url = try std.fmt.allocPrint(self.allocator, "{s}/getUpdates?offset={d}&limit=100&timeout=10", .{
-            self.base,
-            offset,
-        });
+        const url = try std.fmt.allocPrint(self.allocator, "{s}/getUpdates?offset={d}&limit=100&timeout=10", .{ self.base, offset });
         defer self.allocator.free(url);
 
         const uri = try std.Uri.parse(url);
 
         var buffer: [8096]u8 = undefined;
-        var request = try client.open(
-            .GET,
-            uri,
-            .{ .server_header_buffer = &buffer },
-        );
+        var request = try client.open(.GET, uri, .{ .server_header_buffer = &buffer });
         defer request.deinit();
 
         try request.send(.{});
