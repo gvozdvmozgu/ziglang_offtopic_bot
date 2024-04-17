@@ -30,7 +30,7 @@ pub fn run(self: Bot, comptime Command: type, comptime process: fn (Bot, Command
         var request = try client.open(.GET, uri, .{ .server_header_buffer = &buffer });
         defer request.deinit();
 
-        try request.send(.{});
+        try request.send();
         try request.wait();
 
         const body = request.reader().readAllAlloc(self.allocator, std.math.maxInt(usize)) catch unreachable;
@@ -58,24 +58,19 @@ pub fn sendMessage(self: Bot, chat_id: i64, text: []const u8) !void {
     var client = http.Client{ .allocator = self.allocator };
     defer client.deinit();
 
-    const url = try std.fmt.allocPrint(self.allocator, "{s}/sendMessage", .{
-        self.base,
-    });
+    const url = try std.fmt.allocPrint(self.allocator, "{s}/sendMessage", .{self.base});
     defer self.allocator.free(url);
 
     var uri = try std.Uri.parse(url);
-    uri.query = try std.fmt.allocPrint(self.allocator, "chat_id={d}&text={s}", .{ chat_id, text });
-    defer self.allocator.free(uri.query.?);
+    const query = try std.fmt.allocPrint(self.allocator, "chat_id={d}&text={s}", .{ chat_id, text });
+    uri.query = .{ .percent_encoded = query };
+    defer self.allocator.free(query);
 
     var buffer: [8096]u8 = undefined;
-    var request = try client.open(
-        .POST,
-        uri,
-        .{ .server_header_buffer = &buffer },
-    );
+    var request = try client.open(.POST, uri, .{ .server_header_buffer = &buffer });
     defer request.deinit();
 
-    try request.send(.{});
+    try request.send();
     try request.wait();
 }
 

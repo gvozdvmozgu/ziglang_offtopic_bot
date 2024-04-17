@@ -20,7 +20,7 @@ pub fn fetchToncoinPrice(allocator: std.mem.Allocator) !f64 {
     var request = try client.open(.GET, consts.COINGECKO_API, .{ .server_header_buffer = &buffer });
     defer request.deinit();
 
-    try request.send(.{});
+    try request.send();
     try request.wait();
 
     const body = try request.reader().readAllAlloc(allocator, 8192);
