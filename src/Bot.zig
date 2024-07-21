@@ -175,7 +175,7 @@ test "parse" {
         unknown,
 
         fn assert(self: Command, input: []const u8) !void {
-            var args = std.mem.split(u8, input, " ");
+            var args = std.mem.splitSequence(u8, input, " ");
             const actual = parseCommand(Command, &args) catch unreachable;
 
             try std.testing.expectEqualDeep(self, actual);
