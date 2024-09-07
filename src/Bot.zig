@@ -82,7 +82,7 @@ const ArgIterator = *std.mem.SplitIterator(u8, .sequence);
 
 fn parse(comptime Command: type, args: ArgIterator) !Command {
     return switch (@typeInfo(Command)) {
-        .Union => try parseCommand(Command, args),
+        .@"union" => try parseCommand(Command, args),
         else => comptime unreachable,
     };
 }
