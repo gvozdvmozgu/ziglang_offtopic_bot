@@ -125,7 +125,7 @@ fn parseArg(comptime T: type, arg: []const u8) !T {
     }
 
     switch (@typeInfo(T)) {
-        .Int => {
+        .int => {
             return std.fmt.parseInt(T, arg, 10);
         },
         else => {
